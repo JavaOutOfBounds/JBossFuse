@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:camel="http://camel.apache.org/schema/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:cxf="http://camel.apache.org/schema/cxf"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
+       http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd">
+
+	<bean id="activeMQConnectionFactory" class="org.apache.activemq.ActiveMQSslConnectionFactory">
+		<property name="brokerURL" value="ssl://0.0.0.0:61617" />
+		<property name="userName" value="admin" />
+		<property name="password" value="admin" />
+		<property name="trustStore" value="D:\Softwares\jboss-fuse-6.2.1.redhat-084\etc\truststore.ts" />
+		<property name="trustStorePassword" value="password" />
+	</bean>
+
+	<bean id="pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory"
+		init-method="start" destroy-method="stop">
+		<!-- maxConnections : Sets the maximum number of pooled Connection. Default = 1) -->
+		<property name="maxConnections" value="10" />
+		<!-- maximumActiveSessionPerConnection - The maximum number of active session per connection in the pool. -->
+		<property name="maximumActiveSessionPerConnection" value="20" />
+		<!-- blockIfSessionPoolIsFull : Controls behavior of session pool. Blocks call to Connection.getSession()
+		 if the session pool is full. Default = true -->
+		<property name="blockIfSessionPoolIsFull" value="true" />
+		<!-- createConnectionOnStartup - true to create a connection on startup. Used to warm-up the pool on startup.  -->
+		<property name="createConnectionOnStartup" value="true" />
+		<!-- idleTimeout : The maximum time a pooled Connection can sit unused before it is eligible for removal. Default=30sec -->
+		<property name="idleTimeout" value="50" />
+		<!-- connectionFactory : Sets the ConnectionFactory used to create new pooled Connections. -->
+		<property name="connectionFactory" ref="activeMQConnectionFactory" />
+	</bean>
+	
+	<bean id="jmsConfiguration" class="org.apache.camel.component.jms.JmsConfiguration">
+    	<property name="connectionFactory" ref="pooledConnectionFactory"/>
+		<!-- concurrentConsumers : Maximum no.of concurrent invokers -->
+    	<property name="concurrentConsumers" value="5"/>
+		<!-- maxConcurrentConsumers : Allows dynamic scaling for no.of concurrent invokers as well as dynamic shrinking back to the standard no.of consumers once the load decreases.-->
+    	<property name="maxConcurrentConsumers" value="10"/>
+	</bean>
+	
+	<bean id="activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+		<property name="configuration" ref="jmsConfiguration"/>
+		<property name="deliveryPersistent" value="false" />
+	</bean>
+
+	<bean id="studentsApiResource" class="com.javaoutofbounds.pojo.StudentResource" />
+
+	<cxf:rsServer id="cxfrsRestApiEndpoint" address="/students/v4">
+		<cxf:serviceBeans>
+			<ref bean="studentsApiResource" />
+		</cxf:serviceBeans>
+	</cxf:rsServer>
+
+	<camelContext xmlns="http://camel.apache.org/schema/spring"
+		trace="false">
+		<package>com.javaoutofbounds.pojo</package>
+	</camelContext>
+
+</beans>
