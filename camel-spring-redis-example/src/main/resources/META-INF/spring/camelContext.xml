@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:cxf="http://camel.apache.org/schema/cxf"
+	xmlns:osgi="http://www.springframework.org/schema/osgi"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd
+	http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
+	http://www.springframework.org/schema/osgi http://www.springframework.org/schema/osgi/spring-osgi.xsd">
+
+	<bean class="org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor"/>
+	
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<property name="maxActive" value="200" />
+		<property name="maxIdle" value="50" />
+		<property name="maxWait" value="3000" />
+		<property name="testOnBorrow" value="true" />
+	</bean>
+
+	<bean id="jedisConnFactory"
+		class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory"
+		p:host-name="localhost" p:port="6379" p:use-pool="true"
+		p:pool-config-ref="jedisPoolConfig" />
+		
+	<bean id="stringRedisSerializer" class="org.springframework.data.redis.serializer.StringRedisSerializer"/>
+	
+	<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate"
+		p:connection-factory-ref="jedisConnFactory"
+		p:keySerializer-ref="stringRedisSerializer"/>
+
+	<bean id="redisClient" class="org.apache.camel.component.redis.RedisClient">
+		<constructor-arg ref="redisTemplate" />
+	</bean>
+
+	<bean id="studentsApiResourceID" class="com.javaoutofbounds.pojo.StudentResource" />
+
+	<cxf:rsServer id="cxfrsRestApiEndpoint" address="/studentDetails/api">
+		<cxf:serviceBeans>
+			<ref bean="studentsApiResourceID" />
+		</cxf:serviceBeans>
+	</cxf:rsServer>
+
+	<camelContext xmlns="http://camel.apache.org/schema/spring" trace="false">
+		<package>com.javaoutofbounds.pojo</package>
+	</camelContext>
+</beans>
+
